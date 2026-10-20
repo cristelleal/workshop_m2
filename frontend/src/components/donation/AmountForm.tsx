@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router'
 import { allocations, amounts } from '../../constants/donation'
 import { useDonation } from '../../context/DonationContext'
 import Button from '../ui/Button'
-import Checkbox from '../ui/Checkbox'
 import SelectField from '../ui/SelectField'
 import TextField from '../ui/TextField'
 import AmountPicker from './AmountPicker'
@@ -54,12 +53,6 @@ export default function AmountForm() {
         options={allocations}
         value={donation.allocation}
         onChange={(event) => updateDonation({ allocation: event.target.value })}
-      />
-
-      <Checkbox
-        label="Don anonyme"
-        checked={donation.anonymous}
-        onChange={(event) => updateDonation({ anonymous: event.target.checked })}
       />
 
       <Button type="submit" className="w-full" disabled={donation.amount <= 0}>

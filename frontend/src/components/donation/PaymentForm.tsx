@@ -5,7 +5,6 @@ import { useDonation } from '../../context/DonationContext'
 import { formatDonation } from '../../utils/format'
 import Alert from '../ui/Alert'
 import Button from '../ui/Button'
-import Checkbox from '../ui/Checkbox'
 import SelectField from '../ui/SelectField'
 import TextField from '../ui/TextField'
 
@@ -81,7 +80,6 @@ export default function PaymentForm({ refused, onRefused }: PaymentFormProps) {
       </div>
       <TextField label="Nom sur la carte" name="cardholder" autoComplete="cc-name" required />
       <SelectField label="Pays" name="country" options={countries} />
-      <Checkbox name="saveCard" label="Enregistrer mes informations pour mes prochains dons" />
 
       <Button type="submit" className="w-full">
         {refused ? 'Réessayer ·' : 'Donner'} {formatDonation(donation.amount, donation.frequency)}

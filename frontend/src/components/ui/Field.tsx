@@ -5,18 +5,16 @@ export const inputClass = 'w-full rounded-lg border bg-white px-4 py-3 transitio
 type FieldProps = {
   id: string
   label: string
-  action?: ReactNode
   error?: string
   children: ReactNode
 }
 
-export default function Field({ id, label, action, error, children }: FieldProps) {
+export default function Field({ id, label, error, children }: FieldProps) {
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between text-sm">
-        <label htmlFor={id}>{label}</label>
-        {action}
-      </div>
+      <label htmlFor={id} className="mb-2 block text-sm">
+        {label}
+      </label>
       {children}
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
     </div>
