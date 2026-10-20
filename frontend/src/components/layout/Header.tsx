@@ -33,7 +33,7 @@ export default function Header({ minimal = false }: { minimal?: boolean }) {
             <Link to="/connexion" className="hidden hover:text-primary sm:inline">
               Se connecter
             </Link>
-            <Button href="#don" size="sm">
+            <Button to="/don" size="sm">
               Faire un don
             </Button>
           </div>

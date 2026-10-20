@@ -1,11 +1,14 @@
 import { BadgeCheck } from 'lucide-react'
 import heroImage from '../../assets/homepage-img.webp'
+import { useDonation } from '../../context/DonationContext'
 import Button from '../ui/Button'
 import Card from '../ui/Card'
 import Container from '../ui/Container'
 import Eyebrow from '../ui/Eyebrow'
 
 export default function Hero() {
+  const { updateDonation } = useDonation()
+
   return (
     <section>
       <Container className="max-w-3xl py-20 text-center sm:py-28">
@@ -18,8 +21,8 @@ export default function Hero() {
           est le plus utile.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-2">
-          <Button href="#don">Faire un don</Button>
-          <Button href="#don" variant="secondary">
+          <Button to="/don">Faire un don</Button>
+          <Button to="/don" variant="secondary" onClick={() => updateDonation({ frequency: 'monthly' })}>
             Devenir donateur mensuel
           </Button>
         </div>
