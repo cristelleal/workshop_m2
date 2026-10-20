@@ -16,7 +16,7 @@ export default function LoginPage() {
             <Heading as="h1" className="mt-4">
               Connexion
             </Heading>
-            <p className="mt-4 mb-10 text-muted">Accédez à vos dons, reçus et prélèvements.</p>
+            <p className="mt-4 mb-10 text-muted">Faire un don</p>
             <LoginForm />
           </Container>
         </Reveal>

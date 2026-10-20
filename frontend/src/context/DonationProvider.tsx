@@ -6,7 +6,6 @@ const initialDonation: Donation = {
   frequency: 'monthly',
   amount: 25,
   allocation: allocations[0],
-  anonymous: false,
 }
 
 export default function DonationProvider({ children }: { children: ReactNode }) {

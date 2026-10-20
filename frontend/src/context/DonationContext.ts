@@ -14,7 +14,6 @@ export type Donation = {
   frequency: Frequency
   amount: number
   allocation: string
-  anonymous: boolean
   payment?: Payment
 }
 

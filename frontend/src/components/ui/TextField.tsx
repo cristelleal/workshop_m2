@@ -3,16 +3,15 @@ import Field, { inputClass } from './Field'
 
 type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string
-  action?: ReactNode
   suffix?: ReactNode
   error?: string
 }
 
-export default function TextField({ label, action, suffix, error, ...props }: TextFieldProps) {
+export default function TextField({ label, suffix, error, ...props }: TextFieldProps) {
   const id = useId()
 
   return (
-    <Field id={id} label={label} action={action} error={error}>
+    <Field id={id} label={label} error={error}>
       <div className="relative">
         <input
           id={id}
