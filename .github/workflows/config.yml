@@ -19,7 +19,7 @@ jobs:
       - name: Branch rules
         run: |
           SOURCE="${{ github.head_ref }}"; TARGET="${{ github.base_ref }}"
-          if [ "$TARGET" = "main" ] && ! echo "$SOURCE" | grep -qE '^(release|hotfix)/'; then
+          if [ "$TARGET" = "main" ] && ! echo "$SOURCE" | grep -qE '^(release|hotfix|feature|fix)/'; then
             echo "Seules release/* et hotfix/* vers main"; exit 1
           fi
 
