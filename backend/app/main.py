@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 import uuid
@@ -12,6 +13,7 @@ from prometheus_client import Counter
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import DateTime, Numeric, String, create_engine, select, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 logging.basicConfig(
@@ -20,7 +22,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger("api")
 
-engine = create_engine(os.environ["DATABASE_URL"], pool_pre_ping=True)
+def database_url() -> str:
+    # Le compose du host fournit "postgresql://..." : SQLAlchemy choisirait alors psycopg2,
+    # qui n'est pas installé. On force le driver psycopg 3.
+    url = os.environ["DATABASE_URL"]
+    for prefix in ("postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+engine = create_engine(database_url(), pool_pre_ping=True)
+DB_STARTUP_RETRIES = 30
 
 TRANSACTIONS = Counter(
     "transactions_total",
@@ -66,7 +79,16 @@ class TransactionOut(BaseModel):
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Pas de migrations Alembic pour l'instant : on crée la table si elle manque.
-    Base.metadata.create_all(engine)
+    # La base peut démarrer après l'API (depends_on sans healthcheck) : on réessaie.
+    for attempt in range(1, DB_STARTUP_RETRIES + 1):
+        try:
+            Base.metadata.create_all(engine)
+            break
+        except OperationalError:
+            if attempt == DB_STARTUP_RETRIES:
+                raise
+            logger.warning("base pas encore prete (essai %s/%s), nouvel essai dans 2s", attempt, DB_STARTUP_RETRIES)
+            await asyncio.sleep(2)
     yield
 
 
