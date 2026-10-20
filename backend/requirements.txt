@@ -8,4 +8,6 @@ pyjwt
 pwdlib[argon2]
 python-multipart
 email-validator
+python-dotenv
 prometheus-fastapi-instrumentator
+prometheus-client

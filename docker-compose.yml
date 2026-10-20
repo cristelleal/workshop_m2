@@ -1,41 +1,35 @@
-services:
-  db:
-    image: postgres:17-alpine
-    container_name: ${PROJECT_NAME}_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+# Déploiement sur le host du lab (contrat espace-de-travail-devs.md) :
+# - la base `db` est fournie par /opt/resilience/app/compose.yaml (pas de Postgres ici)
+# - pas de `ports:` publiés, seulement `expose:` (le WAF est l'entrée)
+# - tous les services rejoignent le réseau externe `resilience-net`
+# En local : docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
+services:
   api:
     build:
       context: ./backend
-      dockerfile: Dockerfile
-    container_name: ${PROJECT_NAME}_api
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-db}:5432/${POSTGRES_DB}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./backend:/code
-    depends_on:
-      db:
-        condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    expose:
+      - "8000"
+    networks:
+      - resilience-net
 
-volumes:
-  pgdata:
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    depends_on:
+      - api
+    networks:
+      - resilience-net
+
+networks:
+  resilience-net:
+    external: true
