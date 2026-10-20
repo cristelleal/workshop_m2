@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import Button from '../ui/Button'
 import Card from '../ui/Card'
 import Heading from '../ui/Heading'
 
 type Frequency = 'once' | 'monthly'
+type Status = 'idle' | 'loading' | 'success' | 'error'
 
 const frequencies: { value: Frequency; label: string }[] = [
   { value: 'once', label: 'Une fois' },
@@ -15,6 +15,21 @@ const amounts = [10, 25, 50, 100]
 export default function DonationForm() {
   const [frequency, setFrequency] = useState<Frequency>('monthly')
   const [amount, setAmount] = useState(25)
+  const [status, setStatus] = useState<Status>('idle')
+
+  async function submitDonation() {
+    setStatus('loading')
+    try {
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, currency: 'EUR', frequency }),
+      })
+      setStatus(response.ok ? 'success' : 'error')
+    } catch {
+      setStatus('error')
+    }
+  }
 
   return (
     <section id="don" className="py-8">
@@ -55,9 +70,17 @@ export default function DonationForm() {
             ))}
           </div>
 
-          <Button href="/don" className="w-full">
+          <button
+            type="button"
+            onClick={submitDonation}
+            disabled={status === 'loading'}
+            className="inline-flex w-full items-center justify-center rounded-lg bg-primary px-6 py-3 text-base font-medium text-white transition hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60"
+          >
             Continuer · {amount} € {frequency === 'monthly' && 'par mois'}
-          </Button>
+          </button>
+
+          {status === 'success' && <p className="text-sm text-primary">Merci, votre don a bien été enregistré.</p>}
+          {status === 'error' && <p className="text-sm text-red-600">Le paiement a échoué, réessayez dans un instant.</p>}
         </div>
       </Card>
     </section>

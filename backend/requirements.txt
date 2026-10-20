@@ -5,3 +5,5 @@ psycopg[binary]
 pydantic-settings
 alembic
 python-dotenv
+prometheus-fastapi-instrumentator
+prometheus-client
