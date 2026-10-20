@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-heading: 'Space Grotesk', 'Inter Tight', ui-sans-serif, sans-serif;
+  --font-sans: 'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-primary: #730026;
+  --color-primary-dark: #4f001a;
+  --color-ink: #16130f;
+  --color-muted: #625a52;
+  --color-sand: #f4f1ec;
+  --color-stone: #cfc4b8;
+  --color-line: #e4e0da;
+
+  --animate-fade-in: fade-in 0.3s ease-out;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+}
+
+body {
+  @apply bg-white font-sans text-ink antialiased;
+}
