@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react'
 import { Link } from 'react-router'
 import Button from '../ui/Button'
+import Checkbox from '../ui/Checkbox'
 import TextField from '../ui/TextField'
 
 export default function LoginForm() {
@@ -33,10 +34,7 @@ export default function LoginForm() {
         }
       />
 
-      <label className="flex items-center gap-3 text-sm">
-        <input type="checkbox" name="remember" className="size-4 accent-primary" />
-        Se souvenir de moi
-      </label>
+      <Checkbox name="remember" label="Se souvenir de moi" />
 
       <Button type="submit" className="w-full">
         Se connecter

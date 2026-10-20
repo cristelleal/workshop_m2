@@ -9,7 +9,7 @@ export default function CallToAction() {
         <p className="mx-auto mt-4 max-w-sm text-white/80">
           Chaque don, quel que soit son montant, finance des actions concrètes.
         </p>
-        <Button href="#don" variant="inverse" className="mt-8">
+        <Button to="/don" variant="inverse" className="mt-8">
           Faire un don
         </Button>
       </Card>
