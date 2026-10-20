@@ -88,6 +88,26 @@ def list_my_donations(
     return db.scalars(stmt).all()
 
 
+@router.get("/all", response_model=list[DonationOut])
+def list_all_donations(
+    user: CurrentUser,
+    db: DbSession,
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+):
+    """Récupère TOUS les dons, tous utilisateurs confondus (pour l'export data/BI).
+
+    ⚠️ Accessible à tout utilisateur authentifié : expose les dons de tout le monde.
+    """
+    stmt = (
+        select(Donation)
+        .order_by(Donation.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return db.scalars(stmt).all()
+
+
 @router.get("/{donation_id}", response_model=DonationOut)
 def get_donation(donation_id: UUID, user: CurrentUser, db: DbSession):
     donation = db.get(Donation, donation_id)
