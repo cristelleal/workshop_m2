@@ -34,7 +34,7 @@ jobs:
       - run: npm run lint
       - run: npm test
 
-  audit:
+  audit-npm:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -43,6 +43,18 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm audit --audit-level=high
+
+  audit-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install pip-audit
+      - run: pip-audit -r backend/requirements.txt
 
   scan-secrets:
     runs-on: ubuntu-latest
