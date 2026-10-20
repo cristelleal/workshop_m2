@@ -1,7 +1,8 @@
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
 
 from app.core.metrics import DONATIONS_AMOUNT_EUROS, DONATIONS_TOTAL, PAYMENT_DURATION
@@ -37,6 +38,7 @@ def create_donation(payload: DonationCreate, user: CurrentUser, db: DbSession):
     donation = Donation(
         user_id=user.id,
         amount_cents=payload.amount_cents,
+        frequency=payload.frequency,
         is_custom=is_custom,
         card_last4=payload.card_number[-4:],
     )
@@ -49,6 +51,7 @@ def create_donation(payload: DonationCreate, user: CurrentUser, db: DbSession):
 
     donation.status = DonationStatus.succeeded if result.success else DonationStatus.failed
     donation.failure_reason = result.failure_reason
+    donation.processed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(donation)
 
@@ -71,11 +74,16 @@ def create_donation(payload: DonationCreate, user: CurrentUser, db: DbSession):
 
 
 @router.get("/me", response_model=list[DonationOut])
-def list_my_donations(user: CurrentUser, db: DbSession):
+def list_my_donations(
+    user: CurrentUser,
+    db: DbSession,
+    limit: int = Query(default=20, ge=1, le=100),
+):
     stmt = (
         select(Donation)
         .where(Donation.user_id == user.id)
         .order_by(Donation.created_at.desc())
+        .limit(limit)
     )
     return db.scalars(stmt).all()
 

@@ -25,6 +25,11 @@ class DonationStatus(StrEnum):
     failed = "failed"
 
 
+class DonationFrequency(StrEnum):
+    once = "once"
+    monthly = "monthly"
+
+
 class Donation(Base):
     __tablename__ = "donations"
 
@@ -33,6 +38,9 @@ class Donation(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     amount_cents: Mapped[int]
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
+    frequency: Mapped[DonationFrequency] = mapped_column(
+        Enum(DonationFrequency, name="donation_frequency"), default=DonationFrequency.once
+    )
     is_custom: Mapped[bool]
     status: Mapped[DonationStatus] = mapped_column(
         Enum(DonationStatus, name="donation_status"), default=DonationStatus.pending
@@ -42,3 +50,4 @@ class Donation(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

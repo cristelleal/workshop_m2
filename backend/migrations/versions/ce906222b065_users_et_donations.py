@@ -34,11 +34,13 @@ def upgrade() -> None:
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('amount_cents', sa.Integer(), nullable=False),
     sa.Column('currency', sa.String(length=3), nullable=False),
+    sa.Column('frequency', sa.Enum('once', 'monthly', name='donation_frequency'), nullable=False),
     sa.Column('is_custom', sa.Boolean(), nullable=False),
     sa.Column('status', sa.Enum('pending', 'succeeded', 'failed', name='donation_status'), nullable=False),
     sa.Column('card_last4', sa.String(length=4), nullable=True),
     sa.Column('failure_reason', sa.String(length=64), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('processed_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

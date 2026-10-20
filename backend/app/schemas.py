@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models import DonationStatus
+from app.models import DonationFrequency, DonationStatus
 
 PRESET_AMOUNTS_CENTS = (500, 1000, 2500, 5000)
 MIN_AMOUNT_CENTS = 100          # 1 €
@@ -35,6 +35,7 @@ class DonationPresets(BaseModel):
 
 class DonationCreate(BaseModel):
     amount_cents: int = Field(ge=MIN_AMOUNT_CENTS, le=MAX_AMOUNT_CENTS)
+    frequency: DonationFrequency = DonationFrequency.once
     card_number: str = Field(
         pattern=r"^\d{16}$",
         description="Numéro de carte de TEST uniquement (16 chiffres, sans espaces)",
@@ -46,8 +47,10 @@ class DonationOut(BaseModel):
     id: UUID
     amount_cents: int
     currency: str
+    frequency: DonationFrequency
     is_custom: bool
     status: DonationStatus
     card_last4: str | None
     failure_reason: str | None
     created_at: datetime
+    processed_at: datetime | None
