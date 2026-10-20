@@ -1,12 +1,12 @@
-import type { AnchorHTMLAttributes } from 'react'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react'
 
 type Variant = 'primary' | 'secondary' | 'inverse'
 type Size = 'sm' | 'md'
 
-type ButtonProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
-  variant?: Variant
-  size?: Size
-}
+type ButtonProps = { variant?: Variant; size?: Size } & (
+  | (AnchorHTMLAttributes<HTMLAnchorElement> & { href: string })
+  | ButtonHTMLAttributes<HTMLButtonElement>
+)
 
 const variants: Record<Variant, string> = {
   primary: 'bg-primary text-white hover:bg-primary/90',
@@ -20,10 +20,8 @@ const sizes: Record<Size, string> = {
 }
 
 export default function Button({ variant = 'primary', size = 'md', className = '', ...props }: ButtonProps) {
-  return (
-    <a
-      className={`inline-flex items-center justify-center rounded-lg font-medium transition active:scale-[0.98] ${variants[variant]} ${sizes[size]} ${className}`}
-      {...props}
-    />
-  )
+  const classes = `inline-flex items-center justify-center rounded-lg font-medium transition active:scale-[0.98] ${variants[variant]} ${sizes[size]} ${className}`
+
+  if ('href' in props) return <a className={classes} {...props} />
+  return <button className={classes} {...props} />
 }
