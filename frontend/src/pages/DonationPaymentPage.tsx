@@ -11,7 +11,7 @@ import { formatEuro } from '../utils/format'
 
 export default function DonationPaymentPage() {
   const { donation } = useDonation()
-  const [refused, setRefused] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const isMonthly = donation.frequency === 'monthly'
 
   const summary = (
@@ -20,9 +20,9 @@ export default function DonationPaymentPage() {
         { label: isMonthly ? 'Don mensuel' : 'Don ponctuel', value: formatEuro(donation.amount) },
         { label: 'Affectation', value: donation.allocation },
       ]}
-      total={refused ? 0 : donation.amount}
+      total={error ? 0 : donation.amount}
       note={
-        refused
+        error
           ? "Aucun prélèvement n'a eu lieu. Votre don sera enregistré dès que le paiement aura abouti."
           : `${isMonthly ? `Ensuite, ${formatEuro(donation.amount)} seront prélevés chaque mois. ` : ''}Un reçu fiscal est envoyé après chaque paiement.`
       }
@@ -44,7 +44,7 @@ export default function DonationPaymentPage() {
       <p className="mt-4 mb-10 text-muted">
         Don {isMonthly ? 'mensuel' : 'ponctuel'} de {formatEuro(donation.amount)} à Given.
       </p>
-      <PaymentForm refused={refused} onRefused={() => setRefused(true)} />
+      <PaymentForm error={error} onError={setError} />
     </CheckoutLayout>
   )
 }

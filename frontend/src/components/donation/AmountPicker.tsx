@@ -1,4 +1,4 @@
-import { amounts } from '../../constants/donation'
+import { useDonation } from '../../context/DonationContext'
 
 type AmountPickerProps = {
   value: number | null
@@ -6,9 +6,11 @@ type AmountPickerProps = {
 }
 
 export default function AmountPicker({ value, onChange }: AmountPickerProps) {
+  const { presets } = useDonation()
+
   return (
     <div className="grid grid-cols-4 gap-2">
-      {amounts.map((amount) => (
+      {presets.amounts.map((amount) => (
         <button
           key={amount}
           type="button"

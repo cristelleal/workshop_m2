@@ -1,7 +1,8 @@
 import { useState, type SubmitEvent } from 'react'
 import { useNavigate } from 'react-router'
-import { allocations, amounts } from '../../constants/donation'
+import { allocations } from '../../constants/donation'
 import { useDonation } from '../../context/DonationContext'
+import { formatEuro } from '../../utils/format'
 import Button from '../ui/Button'
 import SelectField from '../ui/SelectField'
 import TextField from '../ui/TextField'
@@ -9,9 +10,9 @@ import AmountPicker from './AmountPicker'
 import FrequencyToggle from './FrequencyToggle'
 
 export default function AmountForm() {
-  const { donation, updateDonation } = useDonation()
+  const { donation, presets, updateDonation } = useDonation()
   const navigate = useNavigate()
-  const [customAmount, setCustomAmount] = useState(amounts.includes(donation.amount) ? '' : String(donation.amount))
+  const [customAmount, setCustomAmount] = useState(presets.amounts.includes(donation.amount) ? '' : String(donation.amount))
 
   const selectAmount = (amount: number) => {
     setCustomAmount('')
@@ -22,6 +23,8 @@ export default function AmountForm() {
     setCustomAmount(value)
     updateDonation({ amount: Number(value) || 0 })
   }
+
+  const outOfRange = donation.amount < presets.min || donation.amount > presets.max
 
   const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -38,13 +41,15 @@ export default function AmountForm() {
         <TextField
           label="Autre montant"
           type="number"
-          min="1"
+          min={presets.min}
+          max={presets.max}
           step="0.01"
           inputMode="decimal"
           placeholder="0,00"
           suffix="€"
           value={customAmount}
           onChange={(event) => changeCustomAmount(event.target.value)}
+          error={customAmount && outOfRange ? `Le montant doit être compris entre ${formatEuro(presets.min)} et ${formatEuro(presets.max)}.` : undefined}
         />
       </div>
 
@@ -55,7 +60,7 @@ export default function AmountForm() {
         onChange={(event) => updateDonation({ allocation: event.target.value })}
       />
 
-      <Button type="submit" className="w-full" disabled={donation.amount <= 0}>
+      <Button type="submit" className="w-full" disabled={outOfRange}>
         Continuer
       </Button>
       <p className="text-center text-sm text-muted">Paiement sécurisé · Reçu fiscal envoyé par e-mail</p>
