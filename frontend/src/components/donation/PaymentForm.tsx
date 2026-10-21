@@ -1,50 +1,61 @@
-import type { SubmitEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { countries } from '../../constants/donation'
+import { useAuth } from '../../context/AuthContext'
 import { useDonation } from '../../context/DonationContext'
+import { ApiError } from '../../services/api'
+import { createDonation } from '../../services/donations'
 import { formatDonation } from '../../utils/format'
 import Alert from '../ui/Alert'
 import Button from '../ui/Button'
 import SelectField from '../ui/SelectField'
 import TextField from '../ui/TextField'
 
-// Simulation front : aucun prestataire n'est encore branché, cette carte de test est toujours refusée.
-const REFUSED_TEST_CARD = '4000000000000002'
-
-type PaymentFormProps = {
-  refused: boolean
-  onRefused: () => void
+// Raisons renvoyées par l'API (failure_reason), plus "unavailable" quand l'API ne répond pas.
+const errorMessages: Record<string, string> = {
+  card_declined: 'Votre banque a refusé cette carte. Essayez une autre carte ou un autre moyen de paiement.',
+  insufficient_funds: 'Les fonds sont insuffisants sur cette carte. Essayez une autre carte.',
+  unknown_test_card: "Cette carte n'est pas reconnue. Vérifiez le numéro ou utilisez une autre carte.",
+  unavailable: 'Le service de paiement ne répond pas pour le moment. Réessayez dans quelques instants.',
 }
 
-export default function PaymentForm({ refused, onRefused }: PaymentFormProps) {
+type PaymentFormProps = {
+  error: string | null
+  onError: (error: string) => void
+}
+
+export default function PaymentForm({ error, onError }: PaymentFormProps) {
+  const { user, signOut } = useAuth()
   const { donation, updateDonation } = useDonation()
   const navigate = useNavigate()
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const cardNumber = String(data.get('cardNumber')).replace(/\s/g, '')
 
-    if (cardNumber === REFUSED_TEST_CARD) return onRefused()
+    setSubmitting(true)
+    try {
+      const result = await createDonation(donation.amount, donation.frequency, cardNumber)
+      if (result.status !== 'succeeded') return onError(result.failureReason ?? 'card_declined')
 
-    updateDonation({
-      payment: {
-        email: String(data.get('email')),
-        cardholder: String(data.get('cardholder')),
-        last4: cardNumber.slice(-4),
-        receiptNumber: `GIV-${Date.now().toString().slice(-8)}`,
-        date: new Date(),
-      },
-    })
-    navigate('/don/confirmation')
+      updateDonation({ donorName: String(data.get('cardholder')) })
+      navigate(`/don/confirmation/${result.id}`)
+    } catch (err) {
+      // Session expirée : la déconnexion renvoie vers la page de connexion
+      if (err instanceof ApiError && err.status === 401) return signOut()
+      onError('unavailable')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {refused && (
+      {error && (
         <Alert title="Le paiement n'a pas abouti">
-          Votre banque a refusé cette carte. Essayez une autre carte ou un autre moyen de paiement. Aucun montant n'a été
-          prélevé.
+          {errorMessages[error] ?? errorMessages.card_declined} Aucun montant n'a été prélevé.
         </Alert>
       )}
 
@@ -63,7 +74,7 @@ export default function PaymentForm({ refused, onRefused }: PaymentFormProps) {
         <span className="h-px flex-1 bg-line" />
       </div>
 
-      <TextField label="E-mail" name="email" type="email" autoComplete="email" placeholder="vous@exemple.fr" required />
+      <TextField label="E-mail" name="email" type="email" value={user?.email} readOnly />
       <TextField
         label="Numéro de carte"
         name="cardNumber"
@@ -71,8 +82,10 @@ export default function PaymentForm({ refused, onRefused }: PaymentFormProps) {
         autoComplete="cc-number"
         placeholder="1234 1234 1234 1234"
         maxLength={19}
+        pattern="[0-9 ]{16,19}"
+        title="16 chiffres"
         required
-        error={refused ? 'Cette carte a été refusée. Vérifiez-la ou utilisez-en une autre.' : undefined}
+        error={error && error !== 'unavailable' ? 'Cette carte a été refusée. Vérifiez-la ou utilisez-en une autre.' : undefined}
       />
       <div className="grid grid-cols-2 gap-2">
         <TextField label="Expiration" name="expiry" autoComplete="cc-exp" placeholder="MM / AA" required />
@@ -81,8 +94,10 @@ export default function PaymentForm({ refused, onRefused }: PaymentFormProps) {
       <TextField label="Nom sur la carte" name="cardholder" autoComplete="cc-name" required />
       <SelectField label="Pays" name="country" options={countries} />
 
-      <Button type="submit" className="w-full">
-        {refused ? 'Réessayer ·' : 'Donner'} {formatDonation(donation.amount, donation.frequency)}
+      <Button type="submit" className="w-full" disabled={submitting}>
+        {submitting
+          ? 'Paiement en cours…'
+          : `${error ? 'Réessayer ·' : 'Donner'} ${formatDonation(donation.amount, donation.frequency)}`}
       </Button>
       <p className="text-center text-sm text-muted">
         Paiement chiffré par un prestataire certifié PCI DSS · Annulable à tout moment

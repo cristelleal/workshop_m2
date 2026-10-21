@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { useAuth } from '../../context/AuthContext'
 import Button from '../ui/Button'
 import Container from '../ui/Container'
 import Logo from '../ui/Logo'
@@ -9,6 +10,8 @@ const navLinks = [
 ]
 
 export default function Header({ minimal = false }: { minimal?: boolean }) {
+  const { user } = useAuth()
+
   return (
     <header>
       <Container className="flex h-20 items-center justify-between">
@@ -30,8 +33,8 @@ export default function Header({ minimal = false }: { minimal?: boolean }) {
             <a href="#contact" className="hidden hover:text-primary sm:inline">
               Contact
             </a>
-            <Link to="/connexion" className="hidden hover:text-primary sm:inline">
-              Se connecter
+            <Link to={user ? '/espace' : '/connexion'} className="hidden hover:text-primary sm:inline">
+              {user ? 'Mon espace' : 'Se connecter'}
             </Link>
             <Button to="/don" size="sm">
               Faire un don

@@ -1,22 +1,35 @@
 import { Check } from 'lucide-react'
-import { Link, Navigate } from 'react-router'
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useParams } from 'react-router'
 import Header from '../components/layout/Header'
 import Button from '../components/ui/Button'
 import Container from '../components/ui/Container'
 import DetailList from '../components/ui/DetailList'
 import Heading from '../components/ui/Heading'
 import Reveal from '../components/ui/Reveal'
+import { useAuth } from '../context/AuthContext'
 import { useDonation } from '../context/DonationContext'
+import { getDonation, type DonationRecord } from '../services/donations'
 import { formatDate, formatEuro } from '../utils/format'
 
 export default function DonationConfirmationPage() {
-  const { donation } = useDonation()
-  const { payment } = donation
+  const { id = '' } = useParams()
+  const { user } = useAuth()
+  const { donation: draft } = useDonation()
+  const [donation, setDonation] = useState<DonationRecord | null>(null)
+  const [notFound, setNotFound] = useState(false)
 
-  if (!payment) return <Navigate to="/don" replace />
+  useEffect(() => {
+    getDonation(id)
+      .then(setDonation)
+      .catch(() => setNotFound(true))
+  }, [id])
+
+  if (notFound || donation?.status === 'failed') return <Navigate to="/espace" replace />
+  if (!donation) return null
 
   const isMonthly = donation.frequency === 'monthly'
-  const firstName = payment.cardholder.split(' ')[0]
+  const firstName = draft.donorName?.split(' ')[0]
 
   return (
     <>
@@ -28,22 +41,22 @@ export default function DonationConfirmationPage() {
               <Check className="size-6 text-primary" />
             </span>
             <Heading as="h1" className="mt-8">
-              Merci, {firstName}.
+              Merci{firstName && `, ${firstName}`}.
             </Heading>
             <p className="mt-4 text-muted">
               Votre don {isMonthly && 'mensuel '}de {formatEuro(donation.amount)} est confirmé.{' '}
-              {isMonthly ? 'Le premier prélèvement a été effectué' : 'Le paiement a été effectué'} aujourd'hui, et votre
-              reçu fiscal est envoyé à {payment.email}.
+              {isMonthly ? 'Le premier prélèvement a été effectué' : 'Le paiement a été effectué'} le{' '}
+              {formatDate(donation.date)}, et votre reçu fiscal est envoyé à {user?.email}.
             </p>
 
             <DetailList
               className="mt-10 rounded-2xl border border-line px-6 py-2"
               items={[
                 { label: 'Montant', value: `${formatEuro(donation.amount)}${isMonthly ? ' / mois' : ''}` },
-                { label: 'Date', value: formatDate(payment.date) },
-                { label: 'Affectation', value: donation.allocation },
-                { label: 'Moyen de paiement', value: `Carte se terminant par ${payment.last4}` },
-                { label: 'Numéro de reçu', value: payment.receiptNumber },
+                { label: 'Date', value: formatDate(donation.date) },
+                { label: 'Affectation', value: draft.allocation },
+                { label: 'Moyen de paiement', value: `Carte se terminant par ${donation.cardLast4}` },
+                { label: 'Numéro de reçu', value: donation.id },
               ]}
             />
 
@@ -54,8 +67,8 @@ export default function DonationConfirmationPage() {
               <Button to="/">Retour à Given</Button>
             </div>
             <p className="mt-6 text-sm text-muted">
-              Pour modifier ou arrêter votre don, rendez-vous dans{' '}
-              <Link to="/connexion" className="text-ink underline hover:text-primary">
+              Retrouvez tous vos dons dans{' '}
+              <Link to="/espace" className="text-ink underline hover:text-primary">
                 votre espace donateur
               </Link>
               .

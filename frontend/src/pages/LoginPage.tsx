@@ -1,26 +1,25 @@
-import LoginForm from '../components/auth/LoginForm'
-import Header from '../components/layout/Header'
-import Container from '../components/ui/Container'
-import Eyebrow from '../components/ui/Eyebrow'
-import Heading from '../components/ui/Heading'
-import Reveal from '../components/ui/Reveal'
+import { Link, useLocation } from 'react-router'
+import AuthForm from '../components/auth/AuthForm'
+import AuthLayout from '../components/layout/AuthLayout'
+import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
+  const { signIn } = useAuth()
+  const location = useLocation()
+
   return (
-    <>
-      <Header minimal />
-      <main>
-        <Reveal>
-          <Container className="max-w-md py-20">
-            <Eyebrow>Espace donateur</Eyebrow>
-            <Heading as="h1" className="mt-4">
-              Connexion
-            </Heading>
-            <p className="mt-4 mb-10 text-muted">Faire un don</p>
-            <LoginForm />
-          </Container>
-        </Reveal>
-      </main>
-    </>
+    <AuthLayout
+      title="Connexion"
+      subtitle={
+        <>
+          Pas encore de compte ?{' '}
+          <Link to="/inscription" state={location.state} className="text-ink underline hover:text-primary">
+            Créer un compte
+          </Link>
+        </>
+      }
+    >
+      <AuthForm submitLabel="Se connecter" onSubmit={signIn} />
+    </AuthLayout>
   )
 }
