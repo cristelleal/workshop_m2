@@ -19,6 +19,18 @@ class Settings(BaseSettings):
                 return "postgresql+psycopg://" + v.removeprefix(prefix)
         return v
 
+    @field_validator("jwt_secret_key")
+    @classmethod
+    def check_jwt_secret_strength(cls, v: str) -> str:
+        # Clé vide : chaque /auth/login renverrait une 500. Clé courte : tokens forgeables par force brute.
+        # On préfère refuser de démarrer avec un message clair.
+        if len(v) < 32:
+            raise ValueError(
+                "JWT_SECRET_KEY doit faire au moins 32 caractères "
+                "(à générer avec : openssl rand -base64 48)"
+            )
+        return v
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
