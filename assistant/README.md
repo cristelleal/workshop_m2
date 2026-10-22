@@ -45,6 +45,7 @@ export KEY=<valeur de ASSISTANT_API_KEY>
 |---|---|
 | Le service répond (sans clé) | `curl $AI/health` |
 | Poser une question sur les procédures | `curl -X POST $AI/chat -H "X-API-Key: $KEY" -H 'Content-Type: application/json' -d '{"question":"Comment se déroule le déploiement automatique ?"}'` |
+| Réponse courte : situation + 3 directives max | `curl -X POST $AI/ask -H "X-API-Key: $KEY" -H 'Content-Type: application/json' -d '{"question":"Que faire ?","logs":"..."}'` |
 | Analyser des logs | voir ci-dessous |
 | Voir les incidents connus | `curl $AI/incidents -H "X-API-Key: $KEY"` |
 
@@ -56,6 +57,11 @@ jq -n --rawfile logs erreurs.log '{logs: $logs, service: "api"}' \
 ```
 
 La réponse contient `analysis` (diagnostic, cause, actions, gravité), `matched_incidents` (incidents reconnus, score de 0 à 1 : au-dessus de 0,7 la correspondance est nette) et `sources` (docs utilisées).
+
+Deux scripts font tout cela depuis Loki (lancement manuel, `curl` et `jq` requis) :
+
+- `./ask.sh "Que dois-je faire ?" app-api` : joint les derniers logs ERROR/WARN du conteneur et affiche quelques lignes de directives dans le terminal. Sans erreur dans la dernière heure, il le dit sans solliciter le modèle.
+- `./analyze-logs.sh app-api 50` : analyse détaillée, écrite dans `analyses/analyse-<conteneur>-<date>.md`.
 
 Interface graphique : `http://<IP du PC>:8100/docs` (Swagger) permet d'appeler chaque route depuis le navigateur (bouton **Authorize** pour la clé). Le contenu brut de Qdrant est visible sur `http://localhost:6333/dashboard`, depuis le PC uniquement.
 

@@ -49,6 +49,19 @@ LOG_PROMPT = ChatPromptTemplate.from_template(
     "**Gravité** : faible, moyenne ou critique, avec la raison.\n"
 )
 
+ASK_PROMPT = ChatPromptTemplate.from_template(
+    "Tu es un assistant pour les opérateurs d'une plateforme de paiement en incident.\n"
+    "Appuie-toi sur les incidents connus et les procédures ci-dessous. Si rien ne "
+    "correspond, dis-le en une phrase, sans inventer de procédure.\n"
+    "Tu n'exécutes AUCUNE action : tu donnes des directives, l'opérateur décide.\n\n"
+    "Incidents connus :\n{incidents}\n\n"
+    "Procédures :\n{docs}\n\n"
+    "Logs fournis :\n{logs}\n\n"
+    "Question : {question}\n\n"
+    "Réponds en français, en 5 lignes maximum, sans titre ni gras : une phrase qui "
+    "explique la situation, puis au plus 3 directives numérotées, la plus urgente d'abord."
+)
+
 
 def _format_docs(docs) -> str:
     return "\n\n".join(d.page_content for d in docs)
@@ -117,6 +130,11 @@ class LogBatch(BaseModel):
     service: str | None = None
 
 
+class Ask(BaseModel):
+    question: str = "Que dois-je faire ?"
+    logs: str | None = None
+
+
 class Incident(BaseModel):
     title: str
     service: str | None = None
@@ -181,6 +199,30 @@ def analyze(batch: LogBatch):
         ],
         "sources": sorted({d.metadata.get("source") for d in docs}),
     }
+
+
+@app.post("/ask", dependencies=protected)
+def ask(query: Ask):
+    """Réponse courte : la situation en une phrase et les directives à suivre."""
+    llm = _llm()
+    logs = (query.logs or "").strip()[-config.MAX_LOG_CHARS:]
+    # La recherche porte sur les logs s'il y en a : ce sont eux qui ressemblent aux incidents.
+    search = f"{query.question}\n{logs}" if logs else query.question
+    try:
+        incidents = get_store(config.INCIDENTS_COLLECTION).similarity_search(
+            search, k=config.INCIDENTS_K
+        )
+        docs = get_store().similarity_search(search, k=config.RETRIEVER_K)
+        answer = (ASK_PROMPT | llm | StrOutputParser()).invoke({
+            "incidents": _format_docs(incidents) or "(aucun)",
+            "docs": _format_docs(docs) or "(aucune)",
+            "logs": logs or "(aucun)",
+            "question": query.question,
+        })
+    except Exception as exc:
+        logger.exception("échec de /ask")
+        raise HTTPException(status_code=503, detail=f"LLM indisponible : {exc}") from exc
+    return {"answer": answer.strip()}
 
 
 @app.post("/incidents", status_code=201, dependencies=protected)
