@@ -1,0 +1,44 @@
+[
+  {
+    "title": "API sans accès à la base PostgreSQL",
+    "service": "api",
+    "symptoms": "psycopg.OperationalError: connection failed: Connection refused / could not translate host name \"db\" ; GET /healthz renvoie 503 {\"status\":\"error\"}",
+    "cause": "Le conteneur db est arrêté, redémarre, ou n'est pas sur le réseau resilience-net.",
+    "solution": "1. Vérifier l'état de db : docker compose ps db (dans /opt/resilience/app). 2. Consulter ses logs : docker compose logs --tail 50 db. 3. Vérifier que db et api sont sur resilience-net : docker network inspect resilience-net. 4. Relancer db si besoin ; l'API réessaie la connexion d'elle-même, puis contrôler /healthz."
+  },
+  {
+    "title": "Authentification refusée par PostgreSQL",
+    "service": "api",
+    "symptoms": "FATAL: password authentication failed for user \"payment\"",
+    "cause": "POSTGRES_PASSWORD dans le .env de l'application ne correspond pas au mot de passe de la base.",
+    "solution": "1. Comparer POSTGRES_USER / POSTGRES_PASSWORD du .env de l'app avec ceux utilisés par db. 2. Corriger le .env (ne jamais le committer). 3. Recréer l'api : docker compose up -d api. 4. Vérifier /healthz."
+  },
+  {
+    "title": "Conteneur tué par manque de mémoire (OOM)",
+    "service": null,
+    "symptoms": "exited with code 137 ; OOMKilled: true ; Killed process ... (ollama|python|postgres) out of memory",
+    "cause": "La VM host (8 Go) manque de RAM : le modèle LLM d'Ollama, la supervision et l'application se partagent la mémoire.",
+    "solution": "1. Identifier le conteneur : docker inspect <conteneur> --format '{{.State.OOMKilled}}'. 2. Voir la consommation : docker stats --no-stream. 3. Si c'est ollama : utiliser un modèle plus petit ou décharger le modèle (keep_alive court). 4. Ne jamais sacrifier db ou api : l'assistant est secondaire."
+  },
+  {
+    "title": "Disque plein sur la VM host",
+    "service": null,
+    "symptoms": "No space left on device ; could not extend file ; write error ENOSPC",
+    "cause": "Volumes Docker, images inutilisées, logs ou modèles Ollama remplissent les 60 Go du disque.",
+    "solution": "1. Mesurer : df -h et docker system df. 2. Supprimer les images inutilisées : docker image prune. 3. Supprimer les modèles Ollama non utilisés : ollama rm <modèle>. 4. Ne pas supprimer les volumes de db sans sauvegarde."
+  },
+  {
+    "title": "Jeton JWT invalide ou expiré",
+    "service": "api",
+    "symptoms": "401 Unauthorized ; Signature verification failed ; Signature has expired ; jwt.exceptions.InvalidSignatureError",
+    "cause": "Jeton expiré côté client, ou JWT_SECRET_KEY différent entre les services (rotation ou .env incohérent).",
+    "solution": "1. Si un seul utilisateur est touché : jeton expiré, il doit se reconnecter. 2. Si tous les appels échouent : vérifier que JWT_SECRET_KEY est identique pour auth et api. 3. Après correction du .env, recréer les services concernés."
+  },
+  {
+    "title": "Requêtes bloquées par le WAF",
+    "service": "waf",
+    "symptoms": "403 Forbidden ; ModSecurity: Access denied ; rule id ... triggered",
+    "cause": "Une règle du WAF bloque une requête, légitime (faux positif) ou malveillante.",
+    "solution": "1. Relever l'id de règle et l'IP source dans les logs du WAF. 2. Si le trafic est suspect : ne rien débloquer, prévenir l'équipe SOC. 3. Si c'est un faux positif sur une route métier : ouvrir une demande d'exception à l'équipe SOC/cyber, ne pas désactiver le WAF."
+  }
+]

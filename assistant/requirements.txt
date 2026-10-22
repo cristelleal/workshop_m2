@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+langchain
+langchain-core
+langchain-community
+langchain-ollama
+langchain-qdrant
+langchain-text-splitters
+pypdf
+python-multipart

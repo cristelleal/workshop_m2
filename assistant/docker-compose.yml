@@ -1,0 +1,66 @@
+# Stack IA (Ollama + Qdrant + assistant), hébergée sur le PC IA, hors de la VM host.
+# La VM et les opérateurs l'atteignent via Tailscale, uniquement sur le port de l'assistant.
+#   cp .env.example .env   # puis renseigner ASSISTANT_API_KEY et ASSISTANT_BIND
+#   docker compose up -d --build
+#   docker compose exec ollama ollama pull nomic-embed-text
+#   docker compose exec ollama ollama pull "$LLM_MODEL"
+
+services:
+  # Serveur de modèles local (LLM + embeddings). Jamais exposé hors du PC.
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_models:/root/.ollama     # persiste les modèles tirés (ollama pull)
+    expose:
+      - "11434"
+    # GPU NVIDIA du PC (nécessite nvidia-container-toolkit) :
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices: [{ capabilities: ["gpu"] }]
+
+  # Base vectorielle : procédures (collection docs) + incidents connus (collection incidents).
+  # Image "unprivileged" : tourne sans root.
+  qdrant:
+    image: qdrant/qdrant:v1.19.1-unprivileged
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "127.0.0.1:6333:6333"           # dashboard http://localhost:6333/dashboard, depuis le PC seulement
+    healthcheck:
+      # pas de curl dans l'image : requête HTTP via bash
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333 && printf 'GET /readyz HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '200 OK' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Assistant opérateur RAG (FastAPI + LangChain). Distinct du moteur de remédiation.
+  assistant:
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      LLM_MODEL: ${LLM_MODEL:-}          # fixé après le benchmark
+      EMBED_MODEL: ${EMBED_MODEL:-nomic-embed-text}
+      ASSISTANT_API_KEY: ${ASSISTANT_API_KEY:?définir ASSISTANT_API_KEY dans .env}
+      DOCS_PATH: /docs
+      QDRANT_URL: http://qdrant:6333
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ${DOCS_DIR:-../docs}:/docs       # docs de l'équipe + documents envoyés via POST /documents
+    ports:
+      # IP Tailscale du PC (tailscale ip -4) pour n'écouter que sur le tailnet.
+      # Défaut 127.0.0.1 : accessible depuis le PC uniquement.
+      - "${ASSISTANT_BIND:-127.0.0.1}:8100:8100"
+    depends_on:
+      ollama:
+        condition: service_started
+      qdrant:
+        condition: service_healthy
+
+volumes:
+  ollama_models:
+  qdrant_data:
