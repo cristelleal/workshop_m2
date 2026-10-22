@@ -1,0 +1,26 @@
+# À lancer sur host-resilience, à côté de la stack monitoring :
+#   docker compose -f deploy/compose.ml-detector.yaml up -d --build
+#
+# Le détecteur doit être sur le MÊME réseau Docker que Prometheus et Loki.
+# Trouver son nom :  docker inspect monitoring-prometheus --format '{{json .NetworkSettings.Networks}}'
+services:
+  ml-detector:
+    build: ..
+    container_name: monitoring-ml-detector
+    restart: unless-stopped
+    # Adapter les noms d'hôte si les services ne s'appellent pas prometheus / loki sur ce réseau
+    command: ["--prom-url", "http://prometheus:9090", "--loki-url", "http://loki:3100",
+              "--model", "models/baseline.joblib"]
+    # Durcissement : pas de port publié (seul Prometheus le scrape en interne), FS en lecture seule,
+    # aucune capability, utilisateur non-root (cf. Dockerfile), ressources bornées.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 512m
+    cpus: 0.5
+    networks: [monitoring]
+
+networks:
+  monitoring:
+    external: true
+    name: monitoring_default   # <-- à remplacer par le nom réel du réseau

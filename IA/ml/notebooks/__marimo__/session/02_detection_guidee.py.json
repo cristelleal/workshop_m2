@@ -1,0 +1,371 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.25.2",
+    "script_metadata_hash": null
+  },
+  "cells": [
+    {
+      "id": "setup",
+      "code_hash": "6a91e25b6ad4b3bda90975c7d508fcdf",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Hbol",
+      "code_hash": "55aee4ac725f17fc924100c4a725a7f2",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"resilience-alpha-detection-danomalies-notebook-guide\">RESILIENCE-ALPHA \u2014 D\u00e9tection d'anomalies : notebook guid\u00e9</h1>\n<span class=\"paragraph\">Tu construis toi-m\u00eame le d\u00e9tecteur, \u00e9tape par \u00e9tape, \u00e0 partir des exports de <strong>ta</strong> plateforme.</span>\n<span class=\"paragraph\"><strong>Comment travailler</strong></span>\n<ul>\n<li>Les cellules marqu\u00e9es <strong>\ud83e\udde9 \u00c0 toi</strong> contiennent un bloc <code># --- ton code ---</code> \u2026 <code># --- fin ---</code> \u00e0 compl\u00e9ter.</li>\n<li>Juste en dessous, une cellule <strong>\u2714 V\u00e9rification</strong> s'ex\u00e9cute toute seule (marimo est r\u00e9actif) :\n  \u23f3 pas encore fait \u00b7 \u274c \u00e0 corriger \u00b7 \u2705 valid\u00e9.</li>\n<li>Les <strong>indices</strong> sont repli\u00e9s sous chaque exercice : ouvre-les seulement si tu bloques.</li>\n<li>La correction compl\u00e8te est dans <code>01_detection_complete.py</code> et dans <code>resilience_ml/</code>.</li>\n</ul>\n<table>\n<thead>\n<tr>\n<th style=\"text-align: left;\">Partie</th>\n<th style=\"text-align: left;\">Exercices</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td style=\"text-align: left;\">1. Donn\u00e9es</td>\n<td style=\"text-align: left;\">1 \u2014 lire l'export</td>\n</tr>\n<tr>\n<td style=\"text-align: left;\">2. Features</td>\n<td style=\"text-align: left;\">2 \u2014 m\u00e9triques Prometheus \u00b7 3 \u2014 journaux Loki \u00b7 4 \u2014 fen\u00eatres d'entra\u00eenement</td>\n</tr>\n<tr>\n<td style=\"text-align: left;\">3. Mod\u00e8les</td>\n<td style=\"text-align: left;\">5 \u2014 PCA \u00b7 6 \u2014 Isolation Forest (comparaison) \u00b7 7 \u2014 enveloppe</td>\n</tr>\n<tr>\n<td style=\"text-align: left;\">4. Validation</td>\n<td style=\"text-align: left;\">8 \u2014 faux positifs hors \u00e9chantillon \u00b7 9 \u2014 pr\u00e9cision / rappel sur l'attaque</td>\n</tr>\n</tbody>\n</table></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "MJUe",
+      "code_hash": "22d69f07e01334377e293c25d978ad18",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"1-donnees-fourni\">1. Donn\u00e9es (fourni)</h2></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "a259229418e1b6fa488a61f5e94ce9af",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "bkHC",
+      "code_hash": "50b7688e03e55bf6b0b954d2da9465d4",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "92ad06352146e191b88337ad3ff86e04",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"exercice-1-lire-lexport\">\ud83e\udde9 Exercice 1 \u2014 Lire l'export</h3>\n<span class=\"paragraph\">Calcule \u00e0 partir de <code>prom</code> (pas \u00e0 la main) :</span>\n<ol>\n<li><code>ex1_nb_requetes</code> : le nombre de requ\u00eates PromQL diff\u00e9rentes ;</li>\n<li><code>ex1_pas_s</code> : le pas (en secondes) entre deux timestamps cons\u00e9cutifs ;</li>\n<li><code>ex1_cible_down</code> : l'<code>instance</code> dont la m\u00e9trique <code>up</code> vaut 0 pendant toute la baseline.</li>\n</ol></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "PKri",
+      "code_hash": "b5569f0328cd15f749313adcfb595149",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Xref",
+      "code_hash": "371a839351cbc09baf5de1cca42b17aa",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "1737765db075ac5f81a2b62e74f18c13",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"2-features\">2. Features</h2>\n<span class=\"paragraph\">Le mod\u00e8le ne lit pas les donn\u00e9es brutes : il lit <strong>une ligne par fen\u00eatre de 15 s</strong>, avec une colonne par\nindicateur (une <em>feature</em>). C'est l'\u00e9tape la plus importante : un mod\u00e8le ne d\u00e9tecte que ce que ses features\nlui montrent.</span>\n<h3 id=\"exercice-2-features-issues-de-prometheus\">\ud83e\udde9 Exercice 2 \u2014 Features issues de Prometheus</h3>\n<span class=\"paragraph\">Compl\u00e8te <code>features_metriques(prom)</code>. Elle doit renvoyer un DataFrame <strong>index\u00e9 par timestamp</strong> avec ces colonnes :</span>\n<table>\n<thead>\n<tr>\n<th style=\"text-align: left;\">Colonne</th>\n<th style=\"text-align: left;\">D\u00e9finition</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td style=\"text-align: left;\"><code>http_rps</code></td>\n<td style=\"text-align: left;\">requ\u00eates/s de l'API : somme de <code>rate(http_requests_total[1m])</code> pour <code>job == \"resilience-app\"</code> <em>(exemple fourni)</em></td>\n</tr>\n<tr>\n<td style=\"text-align: left;\"><code>http_rps_5xx</code></td>\n<td style=\"text-align: left;\">idem, seulement les s\u00e9ries dont le label <code>status</code> commence par <code>5</code></td>\n</tr>\n<tr>\n<td style=\"text-align: left;\"><code>http_latency_avg_s</code></td>\n<td style=\"text-align: left;\">latence moyenne = somme des <code>..._duration_seconds_sum</code> / somme des <code>..._duration_seconds_count</code></td>\n</tr>\n<tr>\n<td style=\"text-align: left;\"><code>c_app_api_cpu</code></td>\n<td style=\"text-align: left;\">CPU du conteneur <code>app-api</code> sur la VM <code>host</code> (<code>rate(container_cpu_usage_seconds_total[1m])</code>, label <code>name</code>)</td>\n</tr>\n<tr>\n<td style=\"text-align: left;\"><code>c_security_waf_net_rx_bps</code></td>\n<td style=\"text-align: left;\">octets/s re\u00e7us par le conteneur <code>security-waf</code> sur <code>host</code></td>\n</tr>\n<tr>\n<td style=\"text-align: left;\"><code>node_host_cpu_busy</code></td>\n<td style=\"text-align: left;\">1 \u2212 moyenne du mode <code>idle</code> de <code>rate(node_cpu_seconds_total[1m])</code> sur <code>host</code></td>\n</tr>\n</tbody>\n</table>\n<span class=\"paragraph\">\u26a0\ufe0f Il n'y a <strong>aucune</strong> erreur 5xx dans la baseline. La colonne doit quand m\u00eame exister (remplie de 0) :\nsinon le mod\u00e8le ne la conna\u00eetra pas et ne pourra jamais alerter dessus.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "bbb0a57b5a62c971c45c078ac8f10cc1",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "8847931c4754293bade9439c0ea0d419",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "e4e4b7b649bcf667e2072965741df944",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"exercice-3-features-issues-des-journaux-loki\">\ud83e\udde9 Exercice 3 \u2014 Features issues des journaux (Loki)</h3>\n<span class=\"paragraph\">Compl\u00e8te <code>features_logs(loki)</code> : compte, <strong>par fen\u00eatre de 15 s</strong> (utilise <code>bucket15(r[\"ts_ns\"])</code>) :</span>\n<table>\n<thead>\n<tr>\n<th style=\"text-align: left;\">Colonne</th>\n<th style=\"text-align: left;\">Lignes compt\u00e9es</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td style=\"text-align: left;\"><code>log_waf_lines</code></td>\n<td style=\"text-align: left;\">lignes du service <code>security-waf</code> (<code>labels[\"service_name\"]</code>)</td>\n</tr>\n<tr>\n<td style=\"text-align: left;\"><code>log_waf_4xx</code></td>\n<td style=\"text-align: left;\">lignes du WAF dont le <strong>statut HTTP</strong> commence par 4 (utilise la regex <code>NGINX</code> fournie, groupe 4)</td>\n</tr>\n<tr>\n<td style=\"text-align: left;\"><code>log_api_lines</code></td>\n<td style=\"text-align: left;\">lignes du service <code>app-api</code></td>\n</tr>\n<tr>\n<td style=\"text-align: left;\"><code>log_sys_errors</code></td>\n<td style=\"text-align: left;\">lignes du job <code>varlogs</code> avec <code>detected_level == \"error\"</code></td>\n</tr>\n</tbody>\n</table>\n<span class=\"paragraph\">Pourquoi <code>log_waf_4xx</code> ? Un WAF qui bloque une attaque r\u00e9pond 403 : l'application ne voit rien passer, mais les logs du WAF, eux, explosent.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "emfo",
+      "code_hash": "1d7273667087d244f56adba8e975ba13",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Hstk",
+      "code_hash": "499bea028751b5225da44b5f44591fbd",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "nWHF",
+      "code_hash": "5c9b48ccde593286000ef369738da7db",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"assemblage-fourni\">Assemblage (fourni)</h3>\n<span class=\"paragraph\">On joint m\u00e9triques et logs sur la grille Prometheus (absence de log = 0).\nSi tes exercices 2\u20133 ne sont pas termin\u00e9s, tu peux continuer avec les <strong>features de r\u00e9f\u00e9rence</strong>\n(71 colonnes, celles du d\u00e9tecteur de production).</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "iLit",
+      "code_hash": "6619e71def6e05043ae11126e43f9e6f",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "ZHCJ",
+      "code_hash": "db8a870459081e78458e7e96da897ddf",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "ROlb",
+      "code_hash": "d01a4aba43c3c9938cbeea85557ca948",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "qnkX",
+      "code_hash": "e05d4fc6b714c7ebe5bd2af8a8fee41a",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"exercice-4-quelles-fenetres-pour-lentrainement\">\ud83e\udde9 Exercice 4 \u2014 Quelles fen\u00eatres pour l'entra\u00eenement ?</h3>\n<span class=\"paragraph\">Regarde le graphique : le g\u00e9n\u00e9rateur de trafic ne tournait pas tout le temps.\nConstruis <code>X_train</code> en gardant les fen\u00eatres que tu juges repr\u00e9sentatives du <strong>fonctionnement normal en service</strong>,\npuis justifie ton choix dans la zone de texte (tu pourras la reprendre dans ton rapport).</span>\n<span class=\"paragraph\">Question \u00e0 te poser : si on garde les fen\u00eatres \u00e0 0 req/s, que se passera-t-il le jour o\u00f9 un DDoS fait tomber\nle service et que le trafic l\u00e9gitime chute \u00e0 0 ?</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "TqIu",
+      "code_hash": "7365596ea43575d2a916bddc00366296",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Vxnm",
+      "code_hash": "d7e89476f2c735ef43ae5d67e32672c7",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "DnEU",
+      "code_hash": "2c4eef0da91053fb53bcd72bc0e7ac94",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "ulZA",
+      "code_hash": "8911b514a733d8e25e6f372e11824f49",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"3-modeles\">3. Mod\u00e8les</h2>\n<span class=\"paragraph\">On n'a <strong>que du sain</strong> : c'est de l'apprentissage <strong>non supervis\u00e9</strong>. On apprend \u00e0 quoi ressemble le normal,\npuis on mesure \u00e0 quel point une nouvelle fen\u00eatre s'en \u00e9carte. Les attaques ne servent qu'\u00e0 l'\u00e9valuation.</span>\n<span class=\"paragraph\">Pr\u00e9-traitement commun (\u00e0 utiliser dans les exercices 5 \u00e0 7) :</span>\n<ol>\n<li><code>log1p_signed(X)</code> : un DDoS se lit en ordres de grandeur (\u00d710, \u00d7100), pas en \u00e9cart absolu ;</li>\n<li><code>RobustScaler(quantile_range=(5, 95))</code> : met les features \u00e0 la m\u00eame \u00e9chelle sans se laisser influencer par les pics.</li>\n</ol>\n<h3 id=\"exercice-5-pca-et-erreur-de-reconstruction\">\ud83e\udde9 Exercice 5 \u2014 PCA et erreur de reconstruction</h3>\n<span class=\"paragraph\">La PCA r\u00e9sume les features en quelques composantes qui expliquent l'essentiel de la variance du sain\n(les m\u00e9triques qui bougent <strong>ensemble</strong>). On reconstruit chaque fen\u00eatre \u00e0 partir de ces composantes :\nune fen\u00eatre saine se reconstruit bien ; une fen\u00eatre qui casse les corr\u00e9lations habituelles se reconstruit mal.</span>\n<ul>\n<li><code>entrainer_pca(X_train)</code> \u2192 un dictionnaire avec ce qu'il faut pour scorer (scaler, pca, seuil\u2026)</li>\n<li><code>score_pca(modele, X)</code> \u2192 un tableau numpy : <strong>erreur de reconstruction / seuil</strong> (&gt; 1 = anormal)</li>\n</ul>\n<span class=\"paragraph\">Seuil : quantile 99,5 % des erreurs sur <code>X_train</code>.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ecfG",
+      "code_hash": "70ee36ead3a74a73cf6c1c592a5a06f4",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Pvdt",
+      "code_hash": "ba36f53171c45f93162bad3c55ed8af0",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "ZBYS",
+      "code_hash": "76879159fdae7f6acdaad1aed97da9e4",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"exercice-6-comparer-avec-un-isolation-forest\">\ud83e\udde9 Exercice 6 \u2014 Comparer avec un Isolation Forest</h3>\n<span class=\"paragraph\">L'Isolation Forest est le choix \u00ab classique \u00bb en d\u00e9tection d'anomalies. Entra\u00eene-le sur les <strong>m\u00eames</strong> donn\u00e9es\npr\u00e9-trait\u00e9es, avec la m\u00eame r\u00e8gle de seuil (quantile 99,5 % des scores sains), et compare.\nScore : <code>-iforest.score_samples(Zs)</code> (plus c'est haut, plus c'est anormal), divis\u00e9 par le seuil.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "aLJB",
+      "code_hash": "4f4df6ccd1db7a43cf0bc2b28853267e",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "nHfw",
+      "code_hash": "ebe820a2a19ebccbf21e8be92787d058",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "xXTn",
+      "code_hash": "2ea5ead981efecdee58c41b36ca554fc",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "AjVT",
+      "code_hash": "6d91dc49e5aa9c22baaa3ea5d11f1061",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"exercice-7-lenveloppe-couvrir-ce-que-la-pca-ne-voit-pas\">\ud83e\udde9 Exercice 7 \u2014 L'enveloppe : couvrir ce que la PCA ne voit pas</h3>\n<span class=\"paragraph\">Les 5xx valent toujours 0 en sain. La PCA ne peut rien apprendre d'une feature constante, alors que c'est\npr\u00e9cis\u00e9ment ce qui explose pendant une attaque. On ajoute donc un contr\u00f4le <strong>feature par feature</strong>, qui sert\naussi \u00e0 <strong>expliquer</strong> l'alerte.</span>\n<span class=\"paragraph\">Pour chaque feature <code>j</code>, en espace <code>log1p_signed</code> :\n<code>\u00e9cart_j = max(0, z \u2212 max_sain, min_sain \u2212 z) / max(q95_sain \u2212 q05_sain, 0.25)</code></span>\n<ul>\n<li><code>entrainer_enveloppe(X_train)</code> \u2192 ce qu'il faut (min, max, \u00e9chelle, noms de colonnes)</li>\n<li><code>score_enveloppe(env, X)</code> \u2192 un <strong>DataFrame</strong> d'\u00e9carts (m\u00eames index et colonnes que <code>X</code>) ; une fen\u00eatre est anormale si son max &gt; 1</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "pHFh",
+      "code_hash": "52093108e9eb95a2d30552a02b11993d",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "NCOB",
+      "code_hash": "8cd65b5b3bc1e90c5c4a8561f1ee71e0",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "aqbW",
+      "code_hash": "6db9e85a4d4c52d23781df510ab5f8fb",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"detecteur-combine-fourni\">D\u00e9tecteur combin\u00e9 (fourni)</h3>\n<span class=\"paragraph\">Anomalie si <strong>PCA &gt; 1 ou enveloppe &gt; 1</strong> ; l'explication donne les 3 features les plus hors plage.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "TRpd",
+      "code_hash": "808016703759c4fdcc8c472bb881e6bd",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "TXez",
+      "code_hash": "38295b099b76616574f4aa7417d81cf3",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "dNNg",
+      "code_hash": "b828be0dfd170f315b23fb8004a263ff",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"4-validation\">4. Validation</h2>\n<h3 id=\"exercice-8-faux-positifs-hors-echantillon\">\ud83e\udde9 Exercice 8 \u2014 Faux positifs hors \u00e9chantillon</h3>\n<span class=\"paragraph\">Mesurer les alertes sur <code>X_train</code> ne prouve rien : le mod\u00e8le a d\u00e9j\u00e0 vu ces donn\u00e9es.\nD\u00e9coupe <code>X_train</code> en <strong>blocs de 10 min</strong> (selon le timestamp). Pour chaque bloc, entra\u00eene PCA + enveloppe <strong>sans</strong>\nce bloc, puis score-le. Renvoie la <strong>proportion de fen\u00eatres signal\u00e9es</strong>, qui sont toutes des faux positifs.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "yCnT",
+      "code_hash": "e3bef9dbab21c32cdd9829b1c0ae4567",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "wlCL",
+      "code_hash": "40dc0fcf686d93bce3af57abbe051679",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "kqZH",
+      "code_hash": "d569de99b42960c5c71f1e8b093407a9",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"exercice-9-precision-et-rappel-sur-le-run-dattaque\">\ud83e\udde9 Exercice 9 \u2014 Pr\u00e9cision et rappel sur le run d'attaque</h3>\n<span class=\"paragraph\"><code>evaluer(df)</code> re\u00e7oit un DataFrame avec <code>anomaly</code> (0/1, la pr\u00e9diction) et <code>attaque</code> (True/False, la v\u00e9rit\u00e9)\net renvoie <code>{\"precision\": \u2026, \"rappel\": \u2026, \"taux_fp\": \u2026}</code>.</span>\n<ul>\n<li>pr\u00e9cision = TP / (TP + FP) : quand j'alerte, ai-je raison ?</li>\n<li>rappel = TP / (TP + FN) : quelle part des fen\u00eatres d'attaque ai-je d\u00e9tect\u00e9e ?</li>\n<li>taux_fp = FP / (FP + TN) : \u00e0 quelle fr\u00e9quence est-ce que je d\u00e9range l'\u00e9quipe pour rien ?</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "wAgl",
+      "code_hash": "7a3281f643ab7a53c14be3a8753631e8",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "rEll",
+      "code_hash": "c11d8606b13a9af62a7b4e5baa94014c",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "dGlV",
+      "code_hash": "411bf504c0a1071bf17012f00a6bf59b",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "SdmI",
+      "code_hash": "ac3b481ef25acb941b4d0e0098f8dcef",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "lgWD",
+      "code_hash": "bddf79972a40d0fae37a66dc55306617",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"et-ensuite-passer-en-production\">Et ensuite : passer en production</h2>\n<span class=\"paragraph\">Le d\u00e9tecteur temps r\u00e9el (<code>detector.py</code>) utilise la biblioth\u00e8que <code>resilience_ml/</code>, qui contient la version de\nr\u00e9f\u00e9rence de tout ce que tu viens d'\u00e9crire. <strong>R\u00e8gle d'or :</strong> les features calcul\u00e9es en live doivent \u00eatre\n<em>exactement</em> celles de l'entra\u00eenement. Si tu ajoutes ou modifies une feature ici, reporte-la dans\n<code>resilience_ml/features.py</code>, puis r\u00e9-entra\u00eene et exporte le mod\u00e8le depuis <code>01_detection_complete.py</code> (\u00a79).</span></span>"
+          }
+        }
+      ],
+      "console": []
+    }
+  ]
+}

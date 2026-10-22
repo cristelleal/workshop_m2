@@ -1,0 +1,25 @@
+# Règles d'alerte Prometheus (rule_files: dans prometheus.yml).
+# Mêmes expressions utilisables telles quelles dans Grafana Alerting.
+groups:
+  - name: resilience-ml
+    rules:
+      # 2 fenêtres anormales consécutives (30 s) : filtre les faux positifs isolés
+      - alert: MLAnomalieDetectee
+        expr: resilience_ml_anomaly_consecutive >= 2
+        labels:
+          severity: high
+        annotations:
+          summary: "Comportement anormal de la plateforme (détection ML)"
+          description: >-
+            PCA={{ with query "resilience_ml_pca_ratio" }}{{ . | first | value | printf "%.1f" }}{{ end }},
+            enveloppe={{ with query "resilience_ml_envelope_score" }}{{ . | first | value | printf "%.1f" }}{{ end }}.
+            Voir topk(3, resilience_ml_feature_deviation) pour les métriques en cause.
+
+      # Le détecteur lui-même ne fonctionne plus (sinon une panne passe pour du calme)
+      - alert: MLDetecteurMuet
+        expr: time() - resilience_ml_window_timestamp_seconds > 120 or absent(resilience_ml_window_timestamp_seconds)
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Le détecteur ML n'évalue plus de fenêtres depuis plus de 2 minutes"

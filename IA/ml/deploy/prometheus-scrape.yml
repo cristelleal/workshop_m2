@@ -1,0 +1,7 @@
+# À ajouter dans scrape_configs: de prometheus.yml, puis recharger Prometheus
+  - job_name: resilience-ml
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["monitoring-ml-detector:9105"]
+        labels:
+          vm: host
